@@ -1,0 +1,9 @@
+/home/mittal/.bashrc: Zeile 58: bind: Warnung: Zeileneditierung ist nicht aktiviert.
+/home/mittal/.bashrc: Zeile 59: bind: Warnung: Zeileneditierung ist nicht aktiviert.
+stty: Standardeingabe: Unpassender IOCTL (I/O-Control) für das Gerät
+Traceback (most recent call last):
+  File "main.py", line 20, in <module>
+    from utils import progress_bar
+  File "/misc/lmbraid19/mittal/ssl_baselines/forked/pytorch-cifar/utils.py", line 45, in <module>
+    _, term_width = os.popen('stty size', 'r').read().split()
+ValueError: not enough values to unpack (expected 2, got 0)

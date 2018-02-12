@@ -12,8 +12,11 @@ import torchvision.transforms as transforms
 
 import os
 import argparse
+import config
 
-from models import *
+#from models import vgg
+#from mobilenet import *
+from badgan_net import *
 from utils import progress_bar
 from torch.autograd import Variable
 
@@ -60,17 +63,18 @@ if args.resume:
     start_epoch = checkpoint['epoch']
 else:
     print('==> Building model..')
-    # net = VGG('VGG19')
+    #net = VGG('VGG19')
     # net = ResNet18()
     # net = PreActResNet18()
     # net = GoogLeNet()
     # net = DenseNet121()
     # net = ResNeXt29_2x64d()
-    # net = MobileNet()
-    net = MobileNetV2()
+    #net = MobileNet()
+    #net = MobileNetV2()
     # net = DPN92()
     # net = ShuffleNetG2()
     # net = SENet18()
+    net = BadGAN(config.cifar_config())
 
 if use_cuda:
     net.cuda()
