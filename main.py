@@ -21,7 +21,7 @@ from config import pr2_config
 #from vgg import *
 from badgan_net import *
 #from googlenet import *
-from utils import progress_bar
+#from utils import progress_bar
 from torch.autograd import Variable
 import numpy as np
 import pickle
@@ -92,7 +92,7 @@ else:
 	train_labeled_indices = train_labeled_indices[mask]
 	print ('# Labeled indices ', len(train_labeled_indices) )
 
-	test_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/test_set_extras/', transform=transform)
+	test_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/test_labeled/', transform=transform)
 	test_indices = np.arange(len(test_set))
 	print ('# Test indices ', len(test_indices))
 
@@ -114,8 +114,8 @@ else:
 	#trainloader = DataLoader(train_labeled_set, train_labeled_indices, pr2_config.train_batch_size)
 	#dev_loader = DataLoader(pr2_config, test_set, test_indices, pr2_config.dev_batch_size)
 
-	pickle.dump( trainloader, open( "trainloader.pickle", "wb" ) )
-	pickle.dump( testloader, open( "testloader.pickle", "wb" ) )
+	#pickle.dump( trainloader, open( "trainloader.pickle", "wb" ) )
+	#pickle.dump( testloader, open( "testloader.pickle", "wb" ) )
 
 
 
@@ -176,11 +176,11 @@ def train(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
 
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        #progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+           # % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
-    	#print ('Loss: %.3f | Acc: %.3f%% (%d/%d)' 
-        #% (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        #print ('Loss: %.3f | Acc: %.3f%% (%d/%d)' (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        print ('Loss: ' + str(train_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
 
 def test(epoch):
     global best_acc
@@ -200,12 +200,11 @@ def test(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
 
-        progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        #progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+           # % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
-    	#print ('Loss: %.3f | Acc: %.3f%% (%d/%d)'
-        #% (test_loss/(batch_idx+1), 100.*correct/total, correct, total)())
-
+        #print ('Loss: %.3f | Acc: %.3f%% (%d/%d)' (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        print ('Loss: ' + str(test_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
     # Save checkpoint.
     acc = 100.*correct/total
     if acc > best_acc:

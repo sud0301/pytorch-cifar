@@ -1,6 +1,2 @@
 /home/mittal/.bashrc: Zeile 58: bind: Warnung: Zeileneditierung ist nicht aktiviert.
 /home/mittal/.bashrc: Zeile 59: bind: Warnung: Zeileneditierung ist nicht aktiviert.
-Traceback (most recent call last):
-  File "main.py", line 78, in <module>
-    labeled_loader = DataLoader(pr2_config, train_labeled_set, train_labeled_indices, pr2_config.train_batch_size)
-NameError: name 'DataLoader' is not defined

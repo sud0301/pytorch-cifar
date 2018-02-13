@@ -17,14 +17,16 @@ from config import pr2_config
 
 #from models import vgg
 #from mobilenet import *
-#from resnet import *
+from resnet import *
 #from vgg import *
-from badgan_net import *
+#from badgan_net import *
 #from googlenet import *
 from utils import progress_bar
 from torch.autograd import Variable
 import numpy as np
 import pickle
+import pretrainedmodels
+
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -76,7 +78,7 @@ if data_load==1:
 	testloader = pickle.load( open( "testloader.pickle", "rb" ) )
 else:
 
-	transform = transforms.Compose([transforms.Resize(size=(32, 32), interpolation=2), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+	transform = transforms.Compose([transforms.Resize(size=(224, 224), interpolation=2), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 	train_labeled_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/train_labeled/', transform=transform)
 
@@ -92,7 +94,7 @@ else:
 	train_labeled_indices = train_labeled_indices[mask]
 	print ('# Labeled indices ', len(train_labeled_indices) )
 
-	test_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/test_set_extras/', transform=transform)
+	test_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/test_labeled/', transform=transform)
 	test_indices = np.arange(len(test_set))
 	print ('# Test indices ', len(test_indices))
 
@@ -114,8 +116,8 @@ else:
 	#trainloader = DataLoader(train_labeled_set, train_labeled_indices, pr2_config.train_batch_size)
 	#dev_loader = DataLoader(pr2_config, test_set, test_indices, pr2_config.dev_batch_size)
 
-	pickle.dump( trainloader, open( "trainloader.pickle", "wb" ) )
-	pickle.dump( testloader, open( "testloader.pickle", "wb" ) )
+	#pickle.dump( trainloader, open( "trainloader.pickle", "wb" ) )
+	#pickle.dump( testloader, open( "testloader.pickle", "wb" ) )
 
 
 
@@ -143,7 +145,12 @@ else:
     # net = DPN92()
     # net = ShuffleNetG2()
     # net = SENet18()
-    net = BadGAN(pr2_config)
+    #net = BadGAN(pr2_config)
+    model_name = 'vgg19_bn' # could be fbresnet152 or inceptionresnetv2
+    net = pretrainedmodels.__dict__[model_name](num_classes=1000, pretrained='imagenet')
+    dim_feats = net.last_linear.in_features # =2048
+    nb_classes = 6
+    net.last_linear = nn.Linear(dim_feats, nb_classes)
 
 if use_cuda:
     net.cuda()
