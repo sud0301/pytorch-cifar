@@ -2,3 +2,6 @@ checkpoint/
 data/
 models/__pycache__/
 __pycache__/
+trainloader.pickle
+testloader.pickle
+

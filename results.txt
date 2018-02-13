@@ -1,0 +1,20 @@
+SSL BadGAN: 80%(+-3)
+
+Using BadGAN Discriminator Architecture: with Adam 6e-4 ==> Train_Acc:96% Test_Acc:63%  750/1200
+Usind Densenet121: with Adam 1e-3:
+Using Resnet18: Train:100% Test:65%
+Using VGG19: Train:100% Test:68% 
+USing GoogLenet: Train 100% Test:76%
+
+
+On 20180202_1049 Test-set 542 samples:
+
+BadGAN D architecture: 40%(+-3)
+GoogleNet: 59%(+-2)
+VGG19: 51%(+-1)
+
+Test set including both runs
+
+GoogleNet: 56(+-1)
+
+
