@@ -1,17 +1,17 @@
 SSL BadGAN: 80%(+-3) with 20k
-SSL BadGAN: 79% (running) with 35k
+SSL BadGAN: ~80%  (running) with 35k
+SSL BadGAN: 78(+-1) with 5k,  with 1080 test samples.. converged at 74.4%  
 
-
-Using BadGAN Discriminator Architecture: with Adam 6e-4 ==> Train_Acc:96% Test_Acc:63%  750/1200
-Usind Densenet121: with Adam 1e-3:
-Using Resnet18: Train:100% Test:65%
+Using BadGAN Discriminator Architecture: with Adam 6e-4 ==> Train_Acc:96% Test_Acc:63%  750/1200, Test:60(+-2)--/1080
+Using Resnet18: Train:100% Test:65%, 65.3% --/1080
 Using VGG19: Train:100% Test:68% 
 USing GoogLenet: Train 100% Test:76%,  71%(+-1) --/1080
 
 
-
-Using VGG19_BN fine-tuning imagenet:   /1080
-Using Resnet19 fine-tuning imagenet:   /1080
+Using VGG13_BN fine-tuning imagenet:   /1080 server batch:40
+Using VGG19_BN fine-tuning imagenet:   /1080 quimby batch:20
+Using Resnet18 fine-tuning imagenet: 71.5(+-1)% -- /1080
+Using Resnet34 fine-tuning imagenet(6000mb/quimby): 70.5(+-1)  --/1080
 
 
 On 20180202_1049 Test-set 542 samples:

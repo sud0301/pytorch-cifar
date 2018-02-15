@@ -17,9 +17,9 @@ from config import pr2_config
 
 #from models import vgg
 #from mobilenet import *
-#from resnet import *
+from resnet import *
 #from vgg import *
-from badgan_net import *
+#from badgan_net import *
 #from googlenet import *
 #from utils import progress_bar
 from torch.autograd import Variable
@@ -133,7 +133,7 @@ if args.resume:
 else:
     print('==> Building model..')
     #net = VGG('VGG19')
-    #net = ResNet18()
+    net = ResNet18()
     # net = PreActResNet18()
     #net = GoogLeNet()
     #net = DenseNet121()
@@ -143,7 +143,7 @@ else:
     # net = DPN92()
     # net = ShuffleNetG2()
     # net = SENet18()
-    net = BadGAN(pr2_config)
+    #net = BadGAN(pr2_config)
 
 if use_cuda:
     net.cuda()

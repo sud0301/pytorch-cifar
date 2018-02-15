@@ -146,9 +146,9 @@ class pr2_config:
     size_labeled_data = 1200
     size_test_data = 1200
 
-    train_batch_size = 100
-    train_batch_size_2 = 100
-    dev_batch_size = 200
+    train_batch_size = 20
+    train_batch_size_2 = 20
+    dev_batch_size = 20
 
     max_epochs = 1200
     vi_weight = 1e-2

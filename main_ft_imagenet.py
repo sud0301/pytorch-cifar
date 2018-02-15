@@ -21,7 +21,7 @@ from resnet import *
 #from vgg import *
 #from badgan_net import *
 #from googlenet import *
-from utils import progress_bar
+#from utils import progress_bar
 from torch.autograd import Variable
 import numpy as np
 import pickle
@@ -29,7 +29,7 @@ import pretrainedmodels
 
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 args = parser.parse_args()
 
@@ -110,8 +110,8 @@ else:
 
 	testset = test_set
 
-	trainloader = torch.utils.data.DataLoader(trainset, batch_size=pr2_config.train_batch_size, shuffle=True, num_workers=8)
-	testloader = torch.utils.data.DataLoader(testset, batch_size=pr2_config.dev_batch_size, shuffle=False, num_workers=8)
+	trainloader = torch.utils.data.DataLoader(trainset, batch_size=pr2_config.train_batch_size, shuffle=True, num_workers=4)
+	testloader = torch.utils.data.DataLoader(testset, batch_size=pr2_config.dev_batch_size, shuffle=False, num_workers=4)
 
 	#trainloader = DataLoader(train_labeled_set, train_labeled_indices, pr2_config.train_batch_size)
 	#dev_loader = DataLoader(pr2_config, test_set, test_indices, pr2_config.dev_batch_size)
@@ -146,7 +146,7 @@ else:
     # net = ShuffleNetG2()
     # net = SENet18()
     #net = BadGAN(pr2_config)
-    model_name = 'vgg19_bn' # could be fbresnet152 or inceptionresnetv2
+    model_name = 'vgg19' # could be fbresnet152 or inceptionresnetv2
     net = pretrainedmodels.__dict__[model_name](num_classes=1000, pretrained='imagenet')
     dim_feats = net.last_linear.in_features # =2048
     nb_classes = 6
@@ -155,7 +155,7 @@ else:
 if use_cuda:
     net.cuda()
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
-    cudnn.benchmark = True
+    cudnn.benchmark = False
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
@@ -183,9 +183,10 @@ def train(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
 
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        #progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        #% (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
+        print ('Loss: ' + str(train_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
     	#print ('Loss: %.3f | Acc: %.3f%% (%d/%d)' 
         #% (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
@@ -207,10 +208,11 @@ def test(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
 
-        progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        #progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        #% (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
-    	#print ('Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        print ('Loss: ' + str(test_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
+        #print ('Loss: %.3f | Acc: %.3f%% (%d/%d)'
         #% (test_loss/(batch_idx+1), 100.*correct/total, correct, total)())
 
     # Save checkpoint.
