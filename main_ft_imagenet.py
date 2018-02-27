@@ -21,7 +21,6 @@ from resnet import *
 #from vgg import *
 #from badgan_net import *
 #from googlenet import *
-from utils import progress_bar
 from torch.autograd import Variable
 import numpy as np
 import pickle
@@ -37,6 +36,9 @@ use_cuda = torch.cuda.is_available()
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 data_load = 0
+DATASET = 'CIFAR10' #PR2
+with_progress_bar = True
+
 
 def DataLoader(raw_loader, indices, batch_size):
     images, labels = [], []
@@ -51,61 +53,57 @@ def DataLoader(raw_loader, indices, batch_size):
 
 # Data
 print('==> Preparing data..')
-'''
-transform_train = transforms.Compose([
-    transforms.Resize(size=(224, 224), interpolation=2),
-    #transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
 
-transform_test = transforms.Compose([
-    transforms.Resize(size=(224, 224), interpolation=2),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
+if DATASET == 'CIFAR10':
 
-training_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-indices = np.arange(len(training_set))
-np.random.shuffle(indices)
-mask = np.zeros(indices.shape[0], dtype=np.bool)
-labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
-for i in range(10):
-    mask[np.where(labels == i)[0][: int(cifar_config.size_labeled_data / 10)]] = True
-# labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
-labeled_indices = indices[mask]
-print ('labeled size', labeled_indices.shape[0])
+    transform_train = transforms.Compose([
+        transforms.Resize(size=(224, 224), interpolation=2),
+        #transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
 
-tr_images, tr_labels = [], []
-for idx in labeled_indices:
-    image, label = training_set[idx]
-    tr_images.append(image)
-    tr_labels.append(label)
-    images = torch.stack(tr_images, 0)
-    labels = torch.from_numpy(np.array(tr_labels, dtype=np.int64)).squeeze()
+    transform_test = transforms.Compose([
+        transforms.Resize(size=(224, 224), interpolation=2),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
 
-trainset = tuple(zip(images, labels))
+    training_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
+    indices = np.arange(len(training_set))
+    np.random.shuffle(indices)
+    mask = np.zeros(indices.shape[0], dtype=np.bool)
+    labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
+    for i in range(10):
+        mask[np.where(labels == i)[0][: int(cifar_config.size_labeled_data / 10)]] = True
+    # labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
+    labeled_indices = indices[mask]
+    print ('labeled size', labeled_indices.shape[0])
 
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=cifar_config.train_batch_size, shuffle=True, num_workers=2)
+    tr_images, tr_labels = [], []
+    for idx in labeled_indices:
+        image, label = training_set[idx]
+        tr_images.append(image)
+        tr_labels.append(label)
+        images = torch.stack(tr_images, 0)
+        labels = torch.from_numpy(np.array(tr_labels, dtype=np.int64)).squeeze()
 
-testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=cifar_config.dev_batch_size, shuffle=False, num_workers=2)
+    trainset = tuple(zip(images, labels))
 
-classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-'''
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=cifar_config.train_batch_size, shuffle=True, num_workers=2)
 
-if data_load==1:
-	trainloader = pickle.load( open( "trainloader.pickle", "rb" ) )
-	testloader = pickle.load( open( "testloader.pickle", "rb" ) )
-else:
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=cifar_config.dev_batch_size, shuffle=False, num_workers=2)
+
+    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+elif DATASET == 'PR2':
 	
 	transform = transforms.Compose([transforms.Resize(size=(32, 32), interpolation=2), transforms.Resize(size=(224, 224), interpolation=2), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
         
-
 	train_labeled_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/dataset_splits/20180220/train_labeled_sample/train_set_700_1/', transform=transform)
 	#train_labeled_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/dataset_splits/20180210/train_labeled/', transform=transform)
-
 
 	train_labeled_indices = np.arange(len(train_labeled_set))
 	np.random.shuffle(train_labeled_indices)
@@ -132,22 +130,12 @@ else:
 	    labels = torch.from_numpy(np.array(tr_labels, dtype=np.int64)).squeeze()
 
 	trainset = tuple(zip(images, labels))
-
 	testset = test_set
 
 	trainloader = torch.utils.data.DataLoader(trainset, batch_size=pr2_config.train_batch_size, shuffle=True, num_workers=4)
 	testloader = torch.utils.data.DataLoader(testset, batch_size=pr2_config.dev_batch_size, shuffle=False, num_workers=4)
 
-	'''	
-	trainloader = DataLoader(train_labeled_set, train_labeled_indices, pr2_config.train_batch_size)
-	dev_loader = DataLoader(pr2_config, test_set, test_indices, pr2_config.dev_batch_size)
-
-	pickle.dump( trainloader, open( "trainloader.pickle", "wb" ) )
-	pickle.dump( testloader, open( "testloader.pickle", "wb" ) )
-	'''
-
-
-classes = ('bottle', 'chair', 'cup', 'display', 'keyboard', 'mouse', 'table')
+    classes = ('bottle', 'chair', 'cup', 'display', 'keyboard', 'mouse', 'table')
 
 # Model
 if args.resume:
@@ -209,12 +197,15 @@ def train(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
 
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-    
-        #print ('Loss: ' + str(train_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
-    	#print ('Loss: %.3f | Acc: %.3f%% (%d/%d)' 
-        #% (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        if with_progress_bar:
+            from utils import progress_bar
+            
+            progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        else:
+            print ('Loss: ' + str(train_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
+            #print ('Loss: %.3f | Acc: %.3f%% (%d/%d)' 
+            #% (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
 def test(epoch):
     global best_acc
@@ -233,13 +224,16 @@ def test(epoch):
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
-
-        progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
-        #print ('Loss: ' + str(test_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
-        #print ('Loss: %.3f | Acc: %.3f%% (%d/%d)'
-        #% (test_loss/(batch_idx+1), 100.*correct/total, correct, total)())
+        if with_progress_bar:
+            from utils import progress_bar
+            
+            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        else:
+            print ('Loss: ' + str(test_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
+            #print ('Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            #% (test_loss/(batch_idx+1), 100.*correct/total, correct, total)())
 
     # Save checkpoint.
     acc = 100.*correct/total
