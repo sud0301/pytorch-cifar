@@ -197,7 +197,7 @@ class BadGAN(nn.Module):
         print ('===> Init small-conv for {}'.format(config.dataset))
 
         self.noise_size = 100 #config.noise_size
-        self.num_label  = 10 #config.num_label
+        self.num_label  = 7 #config.num_label
 
         if config.dataset == 'svhn':
             n_filter_1, n_filter_2 = 64, 128
@@ -236,7 +236,7 @@ class BadGAN(nn.Module):
         )
 
         self.out_net = WN_Linear(n_filter_2, self.num_label, train_scale=True, init_stdv=0.1)
-
+    
     def forward(self, X, feat=False):
         if X.dim() == 2:
             X = X.view(X.size(0), 3, 32, 32)

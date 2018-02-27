@@ -129,8 +129,8 @@ class pr2_config:
     dataset = 'pr2'
     #image_size = 3 * 32 * 32
     image_size = 3 * 32 * 32
-    num_label = 6
-
+    num_label = 7
+    model_name = 'cifar_pretrained_badGAN'
     gen_emb_size = 20
     noise_size = 100
 
@@ -143,12 +143,12 @@ class pr2_config:
 
     data_root = 'data'
 
-    size_labeled_data = 1200
-    size_test_data = 1200
+    size_labeled_data = 4900
+    size_test_data = 1400
 
-    train_batch_size = 20
-    train_batch_size_2 = 20
-    dev_batch_size = 20
+    train_batch_size = 100
+    train_batch_size_2 = 100
+    dev_batch_size = 100
 
     max_epochs = 1200
     vi_weight = 1e-2

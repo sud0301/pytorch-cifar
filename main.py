@@ -21,7 +21,7 @@ from resnet import *
 #from vgg import *
 #from badgan_net import *
 #from googlenet import *
-#from utils import progress_bar
+from utils import progress_bar
 from torch.autograd import Variable
 import numpy as np
 import pickle
@@ -35,6 +35,8 @@ use_cuda = torch.cuda.is_available()
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 data_load = 0
+dataset = 'CIFAR10' # 'PR2'
+use_pretrained = False
 
 def DataLoader(raw_loader, indices, batch_size):
     images, labels = [], []
@@ -47,79 +49,76 @@ def DataLoader(raw_loader, indices, batch_size):
     labels = torch.from_numpy(np.array(labels, dtype=np.int64)).squeeze()
     return zip(images, labels)
 
+def load(net):
+    if use_cuda:
+        net.cuda()
+        net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
+        cudnn.benchmark = True
+    save_direc = os.path.join('logs', pr2_config.model_name)
+    net.load_state_dict(torch.load(os.path.join(save_direc, pr2_config.model_name + '_net.pkl')))
+    net.module.out_net = WN_Linear(192, 7, train_scale=True, init_stdv=0.1) 
+    return net
+
 # Data
 print('==> Preparing data..')
-'''
-transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
 
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
+if dataset == 'CIFAR10':
+    transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
 
-trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
 
-testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
 
-classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-'''
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
 
-if data_load==1:
-	trainloader = pickle.load( open( "trainloader.pickle", "rb" ) )
-	testloader = pickle.load( open( "testloader.pickle", "rb" ) )
-else:
+    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-	transform = transforms.Compose([transforms.Resize(size=(32, 32), interpolation=2), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+elif dataset == 'PR2':
 
-	train_labeled_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/train_labeled/', transform=transform)
+    transform = transforms.Compose([transforms.Resize(size=(32, 32), interpolation=2), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    train_labeled_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/dataset_splits/20180220/train_labeled_sample/train_set_1/', transform=transform)
 
+    train_labeled_indices = np.arange(len(train_labeled_set))
+    np.random.shuffle(train_labeled_indices)
+    mask = np.zeros(train_labeled_indices.shape[0], dtype=np.bool)
+    labels = np.array([train_labeled_set[i][1] for i in train_labeled_indices], dtype=np.int64)
+    for i in range(7):
+        mask[np.where(labels == i)[0][: int(pr2_config.size_labeled_data / 7)]] = True
+        # labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
 
-	train_labeled_indices = np.arange(len(train_labeled_set))
-	np.random.shuffle(train_labeled_indices)
-	mask = np.zeros(train_labeled_indices.shape[0], dtype=np.bool)
-	labels = np.array([train_labeled_set[i][1] for i in train_labeled_indices], dtype=np.int64)
-	for i in range(6):
-	    mask[np.where(labels == i)[0][: int(pr2_config.size_labeled_data / 6)]] = True
-	    # labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
+    train_labeled_indices = train_labeled_indices[mask]
+    print ('# Labeled indices ', len(train_labeled_indices) )
 
-	train_labeled_indices = train_labeled_indices[mask]
-	print ('# Labeled indices ', len(train_labeled_indices) )
+    test_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/dataset_splits/20180220/test_labeled_sample/test_set_1/', transform=transform)
+    test_indices = np.arange(len(test_set))
+    print ('# Test indices ', len(test_indices))
 
-	test_set = ImageFolder('/misc/lmbraid19/mittal/yolo-9000/yolo_dataset/test_labeled/', transform=transform)
-	test_indices = np.arange(len(test_set))
-	print ('# Test indices ', len(test_indices))
+    tr_images, tr_labels = [], []
+    for idx in train_labeled_indices:
+        image, label = train_labeled_set[idx]
+        tr_images.append(image)
+        tr_labels.append(label)
+        images = torch.stack(tr_images, 0)
+        labels = torch.from_numpy(np.array(tr_labels, dtype=np.int64)).squeeze()
 
-	tr_images, tr_labels = [], []
-	for idx in train_labeled_indices:
-	    image, label = train_labeled_set[idx]
-	    tr_images.append(image)
-	    tr_labels.append(label)
-	    images = torch.stack(tr_images, 0)
-	    labels = torch.from_numpy(np.array(tr_labels, dtype=np.int64)).squeeze()
+    trainset = tuple(zip(images, labels))
+    testset = test_set
 
-	trainset = tuple(zip(images, labels))
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=pr2_config.train_batch_size, shuffle=True, num_workers=8)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=pr2_config.dev_batch_size, shuffle=False, num_workers=8)
 
-	testset = test_set
+    classes = ('bottle', 'chair', 'cup', 'display', 'keyboard', 'mouse', 'table')
 
-	trainloader = torch.utils.data.DataLoader(trainset, batch_size=pr2_config.train_batch_size, shuffle=True, num_workers=8)
-	testloader = torch.utils.data.DataLoader(testset, batch_size=pr2_config.dev_batch_size, shuffle=False, num_workers=8)
-
-	#trainloader = DataLoader(train_labeled_set, train_labeled_indices, pr2_config.train_batch_size)
-	#dev_loader = DataLoader(pr2_config, test_set, test_indices, pr2_config.dev_batch_size)
-
-	#pickle.dump( trainloader, open( "trainloader.pickle", "wb" ) )
-	#pickle.dump( testloader, open( "testloader.pickle", "wb" ) )
-
-
-
-classes = ('bottle', 'chair', 'cup', 'display', 'keyboard', 'table')
 
 # Model
 if args.resume:
@@ -133,18 +132,23 @@ if args.resume:
 else:
     print('==> Building model..')
     #net = VGG('VGG19')
-    net = ResNet18()
-    # net = PreActResNet18()
-    #net = GoogLeNet()
-    #net = DenseNet121()
-    # net = ResNeXt29_2x64d()
-    #net = MobileNet()
-    #net = MobileNetV2()
-    # net = DPN92()
-    # net = ShuffleNetG2()
-    # net = SENet18()
-    #net = BadGAN(pr2_config)
-
+    if use_pretrained:    
+        load(net)
+    else:
+        net = ResNet18() 
+        '''
+        # net = PreActResNet18()
+        #net = GoogLeNet()
+        #net = DenseNet121()
+        # net = ResNeXt29_2x64d()
+        #net = MobileNet()
+        #net = MobileNetV2()
+        # net = DPN92()
+        # net = ShuffleNetG2()
+        # net = SENet18()
+        #net = BadGAN(pr2_config)
+        #print(net)
+        ''' 
 if use_cuda:
     net.cuda()
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
@@ -152,6 +156,7 @@ if use_cuda:
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+#optimizer = optim.SGD(net.parameters(), momentum=0.9, weight_decay=5e-4)
 #optimizer = optim.Adam(net.parameters(), lr=args.lr, betas=(0.5, 0.999))
 # Training
 def train(epoch):
@@ -176,11 +181,11 @@ def train(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
 
-        #progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-           # % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
         #print ('Loss: %.3f | Acc: %.3f%% (%d/%d)' (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-        print ('Loss: ' + str(train_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
+        #print ('Loss: ' + str(train_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
 
 def test(epoch):
     global best_acc
@@ -200,15 +205,17 @@ def test(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
 
-        #progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-           # % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
         #print ('Loss: %.3f | Acc: %.3f%% (%d/%d)' (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
-        print ('Loss: ' + str(test_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
+        #print ('Loss: ' + str(test_loss/(batch_idx+1)) + ' | ' + "Acc: " + str(100.*correct/total) + ' ' +  str(correct)+ '/' + str(total))
     # Save checkpoint.
     acc = 100.*correct/total
     if acc > best_acc:
         print('Saving..')
+        save()
+        '''
         state = {
             'net': net.module if use_cuda else net,
             'acc': acc,
@@ -217,9 +224,23 @@ def test(epoch):
         #if not os.path.isdir('checkpoint'):
         #    os.mkdir('checkpoint')
         #torch.save(state, './checkpoint/ckpt.t7')
+        '''
         best_acc = acc
 
+def adjust_lr(optimizer, epoch):
+    lr = args.lr * (0.1 ** (epoch // 100))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
+def save():
+    save_direc = os.path.join('logs' , pr2_config.model_name)
+
+    if not os.path.exists(save_direc):
+        os.makedirs(save_direc)
+
+    torch.save(net.state_dict(), os.path.join(save_direc, pr2_config.model_name + '_net.pkl'))
 
 for epoch in range(start_epoch, start_epoch+300):
+    adjust_lr(optimizer, epoch)
     train(epoch)
     test(epoch)
